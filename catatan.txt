@@ -1,0 +1,110 @@
+folder api digunakan untuk menampung banyak folder yang merupakan Hapi plugin. Untuk kebutuhan saat ini, kita cukup membuat satu plugin saja, yakni notes.
+
+api
+└── notes
+  ├── handler.js
+  ├── index.js
+  └── routes.js
+
+============================
+Berkas index.js merupakan tempat di mana kita membuat plugin Hapi itu sendiri. Lalu bagaimana dengan routes.js dan handler.js? Tentu Anda sudah tahu fungsinya kan? Yap! Keduanya digunakan untuk mendefinisikan route /notes (routes.js) dan menampung function handler pada route /notes (handler.js). Kedua berkas tersebut (routes.js dan handler.js) tentu akan digunakan oleh berkas index.js.
+notes
+
+├── handler.js
+├── index.js
+└── routes.js
+====================================
+folder services akan menampung segala fungsi yang digunakan untuk menulis, mendapatkan, mengubah, atau menghapus sebuah resource. Ingat, ini berbeda dengan handler. Service akan fokus dalam menangani operasi CRUD pada resource, sedangkan handler akan fokus dalam menangani response pada client.
+
+services
+└── inMemory
+  └── NotesService.js
+=================================
+#Memahami kata kunci This 
+
+class Game {
+  constructor(name) {
+    this._name = name;
+    // TODO 4. coba tambahkan ini untuk mengatasinya
+    this.loadingStuff = this.loadingStuff.bind(this);
+
+    // TODO 5.Fungsi bind adalah member dari Functionprototype di mana setiap function JavaScript dapat mengakses fungsi ini. Fungsi bind berfungsi untuk mengikat implementasi function agar ia tetap memiliki konteks sesuai nilai yang ditetapkan pada argumen yang diberikan pada fungsi bind tersebut.
+
+    // TODO 6. Jadi dengan menuliskan kode di atas, itu berarti kita mengikat konteks this agar tetap bernilai instance dari Game (ini dilakukan karena keyword this digunakan di constructor, jadi this tersebut masih bernilai instance Game).
+  }
+
+  loadingStuff() {
+    console.log('Memuat komponen permainan ...');
+
+    // TODO 1. Pantas saja, nilai this.name menjadi undefined karena this bukanlah instance dari Game. ia malahan menjadi objek gamePlayer.
+    console.log(`Permainan ${this._name} akan segera dimulai!`);
+    // TODO 3. sehingga this pada fungsi loadingStuff yang dipanggil oleh objek gamePlayer akan dimasukkan nilainya dengan nilai objek gamePlayer.
+    console.log(this);
+  }
+}
+
+const gamePlayer = (game) => ({
+  // TODO 2. Mengapa jadi seperti ini? Hal ini tentu terjadi karena kita menetapkan fungsi loadingStuff pada properti play dari objek gamePlayer
+  play: game.loadingStuff,
+})
+
+const runner = () => {
+  const game = new Game('Catur');
+  gamePlayer(game).play();
+}
+
+runner();
+
+// output: Memuat komponen permainan ...
+Permainan Catur akan segera dimulai!
+===================================
+Berikut beberapa method Joi yang biasa digunakan:
+
+string() : Digunakan untuk menetapkan string sebagai tipe data pada properti.
+
+number() : Digunakan untuk menetapkan number sebagai tipe data.
+
+required() : Digunakan untuk menandakan bahwa properti objek wajib ditetapkan. Biasanya, method ini digunakan secara berantai, contohnya Joi.string().required() yang artinya properti wajib ditetapkan dan bertipe data string.
+
+array() : Digunakan untuk menetapkan properti haruslah sebuah array. Kita juga bisa lebih detail seperti menspesifikasikan hingga ke itemnya. Bila Anda ingin properti sebagai array dari string, maka tuliskan Joi.array().items(Joi.string()).
+
+email() : Merupakan method yang dapat memvalidasi bahwa nilai string adalah sebuah email. Umumnya, penggunaan method ini tampak seperti Joi.string().email().
+
+// membuat objek schema
+const schema = Joi.object({
+ username: Joi.string().alphanum().min(3).max(30).required(),
+ password: Joi.string().min(6).required(),
+ repeatPassword: Joi.string().required().valid(Joi.ref("password")),
+ email: Joi.string().email().required(),
+});
+// memvalidasi objek berdasarkan schema
+const validationResult = schema.validate({
+ username: 'harryp',
+ password: 'supersecretpassword',
+ repeatPassword: 'supersecretpassword',
+ email: 'harry@potter.com'
+});
+
+// menelaah hasil dari proses validasi
+if(validationResult.error) {
+ console.log(`Validation error: ${validationResult.error.message}`);
+} else {
+ console.log('Validasi berhasil')
+}
+=============================
+#> Menerapkan Data Validation pada Notes API - Menyiapkan Skenario Pengujian
+
+-- DI POSTMAN
+Ketahuilah bahwa kode JavaScript di pre-request akan tereksekusi setiap kali request akan dijalankan. Nah, pre-request ini kita manfaatkan untuk menginisialisasi objek note yang hendak digunakan pada request.
+
+Namun perlu diketahui bahwa postman.setNextRequest hanya bekerja bila Anda menjalankan request melalui Postman collection.
+
+==============================================================
+#CUSTOM ERROR
+3 (tiga) custom error, yakni:
+
+-> ClientError (extends dari Error) : Custom error untuk masalah yang terjadi pada client. ClientError ini bersifat abstrak karena client error bisa lebih spesifik. Sehingga, sebaiknya Anda tidak membangkitkan error dengan menggunakan class ini secara langsung, tetapi gunakanlah turunannya.
+
+-> NotFoundError (extends dari ClientError) : Custom error untuk resource yang diminta client tidak ditemukan.
+
+-> InvariantError (extends dari ClientError) : Custom error untuk kesalahan bisnis logic pada data yang dikirimkan oleh client. Kesalahan validasi data merupakan salah satu InvariantError.
